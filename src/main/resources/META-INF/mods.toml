@@ -1,0 +1,20 @@
+modLoader="javafml" #mandatory
+loaderVersion="[36,)" #mandatory This is typically bumped every Minecraft version by Forge. See our download page for lists of versions.
+license="All rights reserved"
+
+[[mods]] #mandatory
+modId="universaliscuniculum" #mandatory
+version="${file.jarVersion}" #mandatory
+displayName="Universalis Cuniculum" #mandatory
+authors="ZigTheHedge" #optional
+# The description text for the mod (multi line!) (#mandatory)
+description='''
+This mod allows the construction of a single Portal which allows the teleportation to various dimensions using "Cards".
+'''
+[[dependencies.sotscompanion]] #optional
+    modId="forge" #mandatory
+    mandatory=true #mandatory
+    versionRange="[36,)" #mandatory
+    ordering="NONE"
+    side="BOTH"
+
