@@ -1,18 +1,19 @@
 package com.cwelth.universaliscuniculum.blocks;
 
+import com.cwelth.universaliscuniculum.config.Config;
 import com.cwelth.universaliscuniculum.inits.Content;
 import com.cwelth.universaliscuniculum.tileentities.PortalCoreTE;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.material.Material;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.Dimension;
+import net.minecraft.world.IBlockReader;
+import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
 
 public class Portal extends Block {
@@ -34,7 +35,7 @@ public class Portal extends Block {
                 PortalCoreTE te = (PortalCoreTE)worldIn.getBlockEntity(core);
                 MinecraftServer mc = entityIn.getServer();
                 BlockPos spawn = te.linkedPortalPosition.east(2).north(2).above();
-                RegistryKey<World> dimId = World.OVERWORLD; //PortalCoreTE.getDimensionIDFromStyle(te.linkedPortalStyle);
+                RegistryKey<World> dimId = Config.getTargetDimension(te.linkedPortalDimension.toString());
                 ((ServerPlayerEntity) entityIn).teleportTo(mc.getLevel(dimId), spawn.getX() + .5D, spawn.getY(), spawn.getZ() + .5D, ((ServerPlayerEntity) entityIn).yHeadRot, ((ServerPlayerEntity) entityIn).yBodyRot);
 
             }
@@ -42,7 +43,7 @@ public class Portal extends Block {
 
     }
 
-    public BlockPos findPortalCore(World worldIn, BlockPos pos)
+    public BlockPos findPortalCore(IWorld worldIn, BlockPos pos)
     {
         ResourceLocation style = new ResourceLocation("universaliscuniculum:portal_block_deact");
         BlockPos curPos = pos;
@@ -79,5 +80,21 @@ public class Portal extends Block {
             return curPos.below();
         else
             return null;
+    }
+
+    @Override
+    public boolean canEntityDestroy(BlockState state, IBlockReader world, BlockPos pos, Entity entity) {
+        return false;
+    }
+
+    @Override
+    public void destroy(IWorld worldIn, BlockPos pos, BlockState blockState) {
+        BlockPos portalCorePos = findPortalCore(worldIn, pos);
+        if(portalCorePos != null) {
+            PortalCoreTE portalCoreTE = (PortalCoreTE) worldIn.getBlockEntity(portalCorePos);
+            if (portalCoreTE != null)
+                portalCoreTE.deactivatePortal(false);
+        }
+        super.destroy(worldIn, pos, blockState);
     }
 }

@@ -22,11 +22,13 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 
+import java.util.ArrayList;
+
 import static com.cwelth.universaliscuniculum.UniversalisCuniculum.MOD_ID;
 
 public class Content {
     private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MOD_ID);
-    private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MOD_ID);
+    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MOD_ID);
     private static final DeferredRegister<TileEntityType<?>> TILEENTITIES = DeferredRegister.create(ForgeRegistries.TILE_ENTITIES, MOD_ID);
     private static final DeferredRegister<ContainerType<?>> CONTAINERS = DeferredRegister.create(ForgeRegistries.CONTAINERS, MOD_ID);
 
@@ -50,7 +52,9 @@ public class Content {
     public static final RegistryObject<TileEntityType<PortalCoreTE>> PORTAL_CORE_TE = TILEENTITIES.register("portalcore", () -> TileEntityType.Builder.of(PortalCoreTE::new, PORTAL_CORE_BLOCK.get()).build(null));
 
     //Items
-    public static final RegistryObject<PortalActivator> PORTAL_ACTIVATOR_ITEM = ITEMS.register("portal_activator", () -> new PortalActivator());
+    public static final ArrayList<RegistryObject<PortalActivator>> PORTAL_ACTIVATORS = new ArrayList<>();
+    //= ITEMS.register("portal_activator", () -> new PortalActivator());
+    public static final RegistryObject<PortalActivator> PORTAL_ACTIVATOR_EMPTY = ITEMS.register("portal_activator_empty", () -> new PortalActivator(""));
 
     //Containers
     public static final RegistryObject<ContainerType<PortalCoreContainer>> PORTAL_CORE_CONTAINER = CONTAINERS.register("portal_core_container", () -> IForgeContainerType.create((windowId, inv, data) -> {

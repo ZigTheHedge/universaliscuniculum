@@ -3,11 +3,15 @@ package com.cwelth.universaliscuniculum.tileentities;
 import com.cwelth.universaliscuniculum.blocks.PortalFrame;
 import com.cwelth.universaliscuniculum.config.Config;
 import com.cwelth.universaliscuniculum.inits.Content;
+import com.cwelth.universaliscuniculum.items.PortalActivator;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.NBTUtil;
+import net.minecraft.network.NetworkManager;
+import net.minecraft.network.play.server.SUpdateTileEntityPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.Direction;
@@ -18,12 +22,14 @@ import net.minecraft.world.World;
 import net.minecraft.world.gen.Heightmap;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
+import net.minecraftforge.fml.RegistryObject;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.List;
 
 public class PortalCoreTE extends TileEntity {
 
@@ -40,6 +46,12 @@ public class PortalCoreTE extends TileEntity {
         super(Content.PORTAL_CORE_TE.get());
     }
 
+    public ItemStack getItemStack(int slot)
+    {
+        return handler.getStackInSlot(slot);
+    }
+
+
     private ItemStackHandler initHandler() {
         return new ItemStackHandler(1) {
 
@@ -51,13 +63,16 @@ public class PortalCoreTE extends TileEntity {
 
             @Override
             public boolean isItemValid(int slot, @Nonnull ItemStack stack) {
-                return stack.getItem() == Content.PORTAL_ACTIVATOR_ITEM.get();
+                Item itiq = stack.getItem();
+                for(RegistryObject<PortalActivator> activator : Content.PORTAL_ACTIVATORS)
+                    if(itiq == activator.get())return true;
+                return false;
             }
 
             @Nonnull
             @Override
             public ItemStack insertItem(int slot, @Nonnull ItemStack stack, boolean simulate) {
-                if(stack.getItem() != Content.PORTAL_ACTIVATOR_ITEM.get())
+                if(!isItemValid(slot, stack))
                     return stack;
                 return super.insertItem(slot, stack, simulate);
             }
@@ -72,6 +87,23 @@ public class PortalCoreTE extends TileEntity {
             return itemStackHandler.cast();
         }
         return super.getCapability(cap, side);
+    }
+
+    @Override
+    public CompoundNBT getUpdateTag() {
+        return save(new CompoundNBT());
+    }
+
+    @Nullable
+    @Override
+    public SUpdateTileEntityPacket getUpdatePacket() {
+        return new SUpdateTileEntityPacket(getBlockPos(), 1, getUpdateTag());
+    }
+
+    @Override
+    public void onDataPacket(NetworkManager net, SUpdateTileEntityPacket pkt) {
+        super.onDataPacket(net, pkt);
+        load(null, pkt.getTag());
     }
 
     @Override
@@ -291,9 +323,11 @@ public class PortalCoreTE extends TileEntity {
     {
         ItemStack activator = handler.getStackInSlot(0);
         if(activator.isEmpty()) return new ResourceLocation("minecraft:nowhere");
-        CompoundNBT tag = activator.getTag();
-        String style = tag.getString("dimension");
-        if(style == "") return new ResourceLocation("minecraft:nowhere");
+        String style = "minecraft:nowhere";
+        if(activator.getItem() instanceof PortalActivator)
+        {
+            style = ((PortalActivator)activator.getItem()).getDimensionKey();
+        }
         return new ResourceLocation(style);
     }
 
@@ -370,12 +404,12 @@ public class PortalCoreTE extends TileEntity {
         BlockPos possiblePortalCoords;
         MinecraftServer mc = this.getLevel().getServer();
         World world = mc.getLevel(Config.getTargetDimension(dimension.toString()));
-        if(dimension.toString() == "minecraft:nether")
+        if(dimension.toString().equals("minecraft:the_nether"))
         {
             double yCoord = getBlockPos().getY();
             if(yCoord > 70) yCoord = 70;
             possiblePortalCoords = new BlockPos(Math.floor(getBlockPos().getX() / 8), yCoord, Math.floor(getBlockPos().getZ() / 8));
-        } else if(dimension.toString() == "minecraft:end")
+        } else if(dimension.toString().equals("minecraft:the_end"))
         {
             possiblePortalCoords = new BlockPos(100, 48, 0);
         } else

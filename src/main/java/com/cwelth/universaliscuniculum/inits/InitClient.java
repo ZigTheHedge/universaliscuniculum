@@ -1,8 +1,14 @@
 package com.cwelth.universaliscuniculum.inits;
 
 import com.cwelth.universaliscuniculum.UniversalisCuniculum;
+import com.cwelth.universaliscuniculum.gui.client.PortalCoreScreen;
 import com.cwelth.universaliscuniculum.tileentities.renderers.PortalFrameRenderer;
+import net.minecraft.client.gui.ScreenManager;
 import net.minecraft.client.renderer.texture.AtlasTexture;
+import net.minecraft.item.IItemPropertyGetter;
+import net.minecraft.item.ItemModelsProperties;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.TextureStitchEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -13,11 +19,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 public class InitClient {
     public static void init(final FMLClientSetupEvent event) {
         PortalFrameRenderer.register();
+        ScreenManager.register(Content.PORTAL_CORE_CONTAINER.get(), PortalCoreScreen::new);
     }
 
-
-    @SubscribeEvent
-    public static void onTextureStitch(TextureStitchEvent.Pre event) {
-
-    }
 }

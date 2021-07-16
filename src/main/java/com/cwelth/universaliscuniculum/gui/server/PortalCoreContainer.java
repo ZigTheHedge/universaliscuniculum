@@ -1,14 +1,17 @@
 package com.cwelth.universaliscuniculum.gui.server;
 
 import com.cwelth.universaliscuniculum.inits.Content;
+import com.cwelth.universaliscuniculum.items.PortalActivator;
 import com.cwelth.universaliscuniculum.tileentities.PortalCoreTE;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.container.Container;
 import net.minecraft.inventory.container.Slot;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.RegistryObject;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.SlotItemHandler;
@@ -17,7 +20,7 @@ import net.minecraftforge.items.wrapper.InvWrapper;
 
 public class PortalCoreContainer extends Container {
 
-    private PortalCoreTE tileEntity;
+    public PortalCoreTE tileEntity;
     private PlayerEntity playerEntity;
     private IItemHandler playerInventory;
 
@@ -32,7 +35,7 @@ public class PortalCoreContainer extends Container {
                 addSlot(new SlotItemHandler(h, 0, 25, 40));
             });
         }
-        addPlayerSlots(8, 84);
+        addPlayerSlots(7, 105);
     }
 
     @Override
@@ -48,7 +51,12 @@ public class PortalCoreContainer extends Container {
                 }
                 slot.setChanged();
             } else {
-                if (stack.getItem() == Content.PORTAL_ACTIVATOR_ITEM.get()) {
+                Item itiq = stack.getItem();
+                boolean isActivator = false;
+                for(RegistryObject<PortalActivator> activator : Content.PORTAL_ACTIVATORS)
+                    if(itiq == activator.get())isActivator = true;
+
+                if (isActivator) {
                     if (!this.moveItemStackTo(stack, 0, 1, false)) {
                         return ItemStack.EMPTY;
                     }

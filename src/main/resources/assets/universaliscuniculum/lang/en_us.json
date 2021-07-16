@@ -1,7 +1,12 @@
 {
   "item.universaliscuniculum.portal_core": "Tunnel Core",
-
   "block.universaliscuniculum.portal_core": "Tunnel Core",
+  "item.universaliscuniculum.portal_block": "Tunnel Frame",
+  "block.universaliscuniculum.portal_block": "Tunnel Frame",
+  "block.universaliscuniculum.portal": "Yes! I am THE Tunnel!",
 
+  "portalcore.nostructure": "Structure incomplete!",
+  "portalcore.active": "Tunnel Active!",
+  "screen.universaliscuniculum.portalcore": "Tunnel Core",
   "itemGroup.universaliscuniculum": "Universalis Cuniculum"
 }
