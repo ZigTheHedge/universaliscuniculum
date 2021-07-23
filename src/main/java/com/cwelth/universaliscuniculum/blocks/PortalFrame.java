@@ -1,6 +1,7 @@
 package com.cwelth.universaliscuniculum.blocks;
 
 import com.cwelth.universaliscuniculum.inits.Content;
+import com.cwelth.universaliscuniculum.tileentities.PortalCoreTE;
 import com.cwelth.universaliscuniculum.tileentities.PortalFrameTE;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockRenderType;
@@ -11,6 +12,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.shapes.VoxelShape;
 import net.minecraft.util.math.shapes.VoxelShapes;
 import net.minecraft.world.IBlockReader;
+import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
 import net.minecraftforge.common.ToolType;
 
@@ -47,7 +49,7 @@ public class PortalFrame extends Block {
         return BlockRenderType.INVISIBLE;
     }
 
-    public BlockPos getPortalCore(BlockPos pos, World worldIn)
+    public BlockPos getPortalCore(BlockPos pos, IWorld worldIn)
     {
         if(worldIn.getBlockState(pos.above()).getBlock() == this)
         {
@@ -97,4 +99,15 @@ public class PortalFrame extends Block {
         return null;
     }
 
+    @Override
+    public void destroy(IWorld worldIn, BlockPos pos, BlockState blockState) {
+        super.destroy(worldIn, pos, blockState);
+        BlockPos portalCorePos = getPortalCore(pos, worldIn);
+        if(portalCorePos != null) {
+            Block portal = worldIn.getBlockState(portalCorePos).getBlock();
+            PortalCoreTE portalCoreTE = (PortalCoreTE) worldIn.getBlockEntity(((Portal) portal).findPortalCore(worldIn, portalCorePos));
+            if (portalCoreTE != null)
+                portalCoreTE.deactivatePortal(false);
+        }
+    }
 }

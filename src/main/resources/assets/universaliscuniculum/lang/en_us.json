@@ -1,9 +1,22 @@
 {
-  "item.universaliscuniculum.portal_core": "Tunnel Core",
   "block.universaliscuniculum.portal_core": "Tunnel Core",
-  "item.universaliscuniculum.portal_block": "Tunnel Frame",
   "block.universaliscuniculum.portal_block": "Tunnel Frame",
   "block.universaliscuniculum.portal": "Yes! I am THE Tunnel!",
+
+  "item.universaliscuniculum.portal_activator_empty": "Empty Tunnel Activator",
+  "item.universaliscuniculum.portal_activator_overworld": "Overworld Tunnel Activator",
+  "item.universaliscuniculum.portal_activator_nether": "The Nether Tunnel Activator",
+  "item.universaliscuniculum.portal_activator_end": "The End Tunnel Activator",
+  "item.universaliscuniculum.portal_activator_arcane": "Arcane Tunnel Activator",
+  "item.universaliscuniculum.portal_activator_dark": "Dark Tunnel Activator",
+  "item.universaliscuniculum.portal_activator_deepsea": "Deep Sea Tunnel Activator",
+  "item.universaliscuniculum.portal_activator_light": "Light Tunnel Activator",
+  "item.universaliscuniculum.portal_activator_navy": "Navy Tunnel Activator",
+  "item.universaliscuniculum.portal_activator_sand": "Sand Tunnel Activator",
+  "item.universaliscuniculum.portal_activator_sky": "Sky Tunnel Activator",
+  "item.universaliscuniculum.portal_activator_swamp": "Swamp Tunnel Activator",
+  "item.universaliscuniculum.portal_activator_terracota": "Terracota Tunnel Activator",
+
 
   "portalcore.nostructure": "Structure incomplete!",
   "portalcore.active": "Tunnel Active!",

@@ -13,7 +13,7 @@ public class InitCommon {
     public static final ItemGroup creativeTab = new ItemGroup("universaliscuniculum") {
         @Override
         public ItemStack makeIcon() {
-            return new ItemStack(Blocks.COBBLESTONE);
+            return new ItemStack(Content.PORTAL_ACTIVATOR_EMPTY.get());
         }
     };
 

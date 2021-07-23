@@ -17,15 +17,15 @@ import org.apache.logging.log4j.Logger;
 public class UniversalisCuniculum
 {
     // Directly reference a log4j logger.
-    private static final Logger LOGGER = LogManager.getLogger();
+    public static final Logger LOGGER = LogManager.getLogger();
     public static final String MOD_ID = "universaliscuniculum";
 
     public UniversalisCuniculum() {
         FMLJavaModLoadingContext.get().getModEventBus().addListener(InitCommon::init);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(InitClient::init);
         Content.init();
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.COMMON_CONFIG);
         Config.loadConfig(Config.COMMON_CONFIG, FMLPaths.CONFIGDIR.get().resolve(MOD_ID + "-common.toml"));
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.COMMON_CONFIG);
     }
 
 }

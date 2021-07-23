@@ -1,5 +1,6 @@
 package com.cwelth.universaliscuniculum.tileentities;
 
+import com.cwelth.universaliscuniculum.UniversalisCuniculum;
 import com.cwelth.universaliscuniculum.blocks.PortalFrame;
 import com.cwelth.universaliscuniculum.config.Config;
 import com.cwelth.universaliscuniculum.inits.Content;
@@ -20,12 +21,14 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.gen.Heightmap;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.fml.RegistryObject;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -364,7 +367,7 @@ public class PortalCoreTE extends TileEntity {
         targetWorld.setBlockAndUpdate(position, Content.PORTAL_CORE_BLOCK.get().defaultBlockState());
         PortalCoreTE targetCore = (PortalCoreTE) targetWorld.getBlockEntity(position);
         targetCore.linkedPortalPosition = this.getBlockPos();
-        targetCore.linkedPortalDimension = this.getLevel().dimension().getRegistryName();
+        targetCore.linkedPortalDimension = this.getLevel().dimension().location();
         targetCore.alwaysActive = true;
         for (int i = 1; i <= 3; i++) {
             if(i < 3) {
@@ -385,12 +388,12 @@ public class PortalCoreTE extends TileEntity {
         setPortalFrame(targetWorld, position.above(4).north(), targetCore.linkedPortalDimension);
         setPortalFrame(targetWorld, position.above(4), targetCore.linkedPortalDimension);
 
-        for(int px = 0; px < 5; px++)
-            for(int py = 0; py < 5; py++)
-            {
-                targetWorld.setBlockAndUpdate(position.below().east(2).south(2).west(px).north(py), Blocks.OBSIDIAN.defaultBlockState());
-            }
-
+        if(Config.PLATFORMNEEDED.get()) {
+            for (int px = 0; px < 5; px++)
+                for (int py = 0; py < 5; py++) {
+                    targetWorld.setBlockAndUpdate(position.below().east(2).south(2).west(px).north(py), ForgeRegistries.BLOCKS.getValue(new ResourceLocation(Config.PLATFORM_BLOCK.get())).getBlock().defaultBlockState());
+                }
+        }
         targetCore.activatePortal(targetCore.linkedPortalDimension);
         targetCore.setChanged();
 
@@ -415,7 +418,7 @@ public class PortalCoreTE extends TileEntity {
         } else
         {
 
-            possiblePortalCoords = getBlockPos();
+            possiblePortalCoords = ((ServerWorld)world).getSharedSpawnPos();
             int lastY = possiblePortalCoords.getY();
             possiblePortalCoords = world.getHeightmapPos(Heightmap.Type.MOTION_BLOCKING, possiblePortalCoords);
             if(possiblePortalCoords.getY() == -1)
@@ -443,7 +446,12 @@ public class PortalCoreTE extends TileEntity {
             isPowered = true;
             if(isPortalActive) return;
             ResourceLocation style = getCoreStyle();
-            if(style.toString() == "minecraft:nowhere") return;
+            if(style.toString() == "minecraft:nowhere")
+            {
+                UniversalisCuniculum.LOGGER.warn("Cannot find suitable dimension! Check your configs!");
+                return;
+            }
+            if(this.getLevel().dimension().location().toString().equals(style.toString())) return;
             activatePortal(style);
             if(linkedPortalPosition.getX() == 0 && linkedPortalPosition.getY() == 0 && linkedPortalPosition.getZ() == 0)
                 buildLinkedPortal(Config.getTargetDimension(style.toString()), getTargetPortalPosition(style));

@@ -15,6 +15,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockReader;
 import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
+import net.minecraft.world.server.ServerWorld;
 
 public class Portal extends Block {
     public Portal() {
@@ -36,7 +37,9 @@ public class Portal extends Block {
                 MinecraftServer mc = entityIn.getServer();
                 BlockPos spawn = te.linkedPortalPosition.east(2).north(2).above();
                 RegistryKey<World> dimId = Config.getTargetDimension(te.linkedPortalDimension.toString());
-                ((ServerPlayerEntity) entityIn).teleportTo(mc.getLevel(dimId), spawn.getX() + .5D, spawn.getY(), spawn.getZ() + .5D, ((ServerPlayerEntity) entityIn).yHeadRot, ((ServerPlayerEntity) entityIn).yBodyRot);
+                ServerWorld dim = mc.getLevel(dimId);
+                dim.getChunk(spawn);
+                ((ServerPlayerEntity) entityIn).teleportTo(dim, spawn.getX() + .5D, spawn.getY(), spawn.getZ() + .5D, ((ServerPlayerEntity) entityIn).yHeadRot, ((ServerPlayerEntity) entityIn).yBodyRot);
 
             }
         }
