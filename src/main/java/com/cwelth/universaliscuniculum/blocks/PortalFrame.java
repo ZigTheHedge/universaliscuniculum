@@ -8,6 +8,7 @@ import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.material.Material;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.shapes.VoxelShape;
 import net.minecraft.util.math.shapes.VoxelShapes;
@@ -18,7 +19,7 @@ import net.minecraftforge.common.ToolType;
 
 import javax.annotation.Nullable;
 
-public class PortalFrame extends Block {
+public class PortalFrame extends Block implements IPortalStructurePart {
     public PortalFrame() {
         super(Properties.of(Material.METAL)
                 .harvestLevel(2)
@@ -49,54 +50,67 @@ public class PortalFrame extends Block {
         return BlockRenderType.INVISIBLE;
     }
 
+    public static BlockPos getPortalCoreStatic(BlockPos pos, IWorld worldIn)
+    {
+        int coresFound = 0;
+        BlockPos curPos = PortalCore.getPortalCenter(pos, worldIn);
+        if(curPos == null)return null;
+        BlockPos centerPos = curPos;
+        BlockPos corePos = null;
+
+        if(worldIn.getBlockState(curPos).getBlock() == Content.PORTAL_CORE_BLOCK.get())
+        {
+            coresFound++;
+            corePos = curPos;
+        }
+        //Bottom layer
+        for(Direction direction: Direction.values())
+        {
+            if(direction == Direction.UP || direction == Direction.DOWN)continue;
+            for(int ix = 0; ix < 2; ix++) {
+                curPos = curPos.relative(direction);
+                if (worldIn.getBlockState(curPos).getBlock() == Content.PORTAL_CORE_BLOCK.get()) {
+                    coresFound++;
+                    corePos = curPos;
+                }
+            }
+            for(int iy = 0; iy < 3; iy++)
+            {
+                curPos = curPos.above();
+                if (worldIn.getBlockState(curPos).getBlock() == Content.PORTAL_CORE_BLOCK.get()) {
+                    coresFound++;
+                    corePos = curPos;
+                }
+            }
+            curPos = centerPos;
+        }
+        centerPos = centerPos.above(4);
+        curPos = centerPos;
+        if(worldIn.getBlockState(curPos).getBlock() == Content.PORTAL_CORE_BLOCK.get())
+        {
+            coresFound++;
+            corePos = curPos;
+        }
+
+        for(Direction direction: Direction.values())
+        {
+            if(direction == Direction.UP || direction == Direction.DOWN)continue;
+            curPos = curPos.relative(direction);
+            if (worldIn.getBlockState(curPos).getBlock() == Content.PORTAL_CORE_BLOCK.get()) {
+                coresFound++;
+                corePos = curPos;
+            }
+            curPos = centerPos;
+        }
+
+        if(coresFound == 1)return corePos;
+        else return null;
+    }
+
+
     public BlockPos getPortalCore(BlockPos pos, IWorld worldIn)
     {
-        if(worldIn.getBlockState(pos.above()).getBlock() == this)
-        {
-            if(worldIn.getBlockState(pos.east()).getBlock() == this)
-            {
-                Block portal = worldIn.getBlockState(pos.above().east()).getBlock();
-                if(portal == Content.PORTAL_BLOCK.get())
-                    return pos.above().east();
-            }
-            if(worldIn.getBlockState(pos.west()).getBlock() == this)
-            {
-                Block portal = worldIn.getBlockState(pos.above().west()).getBlock();
-                if(portal == Content.PORTAL_BLOCK.get())
-                    return pos.above().west();
-            }
-            if(worldIn.getBlockState(pos.south()).getBlock() == this)
-            {
-                Block portal = worldIn.getBlockState(pos.above().south()).getBlock();
-                if(portal == Content.PORTAL_BLOCK.get())
-                    return pos.above().south();
-            }
-            if(worldIn.getBlockState(pos.north()).getBlock() == this)
-            {
-                Block portal = worldIn.getBlockState(pos.above().north()).getBlock();
-                if(portal == Content.PORTAL_BLOCK.get())
-                    return pos.above().north();
-            }
-        }
-        if(worldIn.getBlockState(pos.above()).getBlock() == Content.PORTAL_BLOCK.get())
-            return pos.above();
-
-        if(worldIn.getBlockState(pos.below()).getBlock() == Content.PORTAL_BLOCK.get())
-            return pos.below();
-
-        if(worldIn.getBlockState(pos.east()).getBlock() == Content.PORTAL_BLOCK.get())
-            return pos.east();
-
-        if(worldIn.getBlockState(pos.west()).getBlock() == Content.PORTAL_BLOCK.get())
-            return pos.west();
-
-        if(worldIn.getBlockState(pos.south()).getBlock() == Content.PORTAL_BLOCK.get())
-            return pos.south();
-
-        if(worldIn.getBlockState(pos.north()).getBlock() == Content.PORTAL_BLOCK.get())
-            return pos.north();
-
-        return null;
+        return PortalFrame.getPortalCoreStatic(pos, worldIn);
     }
 
     @Override
@@ -105,7 +119,7 @@ public class PortalFrame extends Block {
         BlockPos portalCorePos = getPortalCore(pos, worldIn);
         if(portalCorePos != null) {
             Block portal = worldIn.getBlockState(portalCorePos).getBlock();
-            PortalCoreTE portalCoreTE = (PortalCoreTE) worldIn.getBlockEntity(((Portal) portal).findPortalCore(worldIn, portalCorePos));
+            PortalCoreTE portalCoreTE = (PortalCoreTE) worldIn.getBlockEntity(portalCorePos);
             if (portalCoreTE != null)
                 portalCoreTE.deactivatePortal(false);
         }

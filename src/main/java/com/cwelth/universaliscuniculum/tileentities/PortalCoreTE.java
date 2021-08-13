@@ -1,6 +1,8 @@
 package com.cwelth.universaliscuniculum.tileentities;
 
 import com.cwelth.universaliscuniculum.UniversalisCuniculum;
+import com.cwelth.universaliscuniculum.blocks.IPortalStructurePart;
+import com.cwelth.universaliscuniculum.blocks.PortalCore;
 import com.cwelth.universaliscuniculum.blocks.PortalFrame;
 import com.cwelth.universaliscuniculum.config.Config;
 import com.cwelth.universaliscuniculum.inits.Content;
@@ -43,6 +45,7 @@ public class PortalCoreTE extends TileEntity {
     public boolean alwaysActive = false;
     public BlockPos linkedPortalPosition = new BlockPos(0,0,0);
     public ResourceLocation linkedPortalDimension = new ResourceLocation("minecraft:nowhere");
+    private ResourceLocation looksLike = new ResourceLocation("universaliscuniculum:portal_block_deact");
     public boolean isPowered = false;
 
     public PortalCoreTE() {
@@ -62,6 +65,7 @@ public class PortalCoreTE extends TileEntity {
             protected void onContentsChanged(int slot) {
                 getLevel().sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), 3);
                 setChanged();
+                if(getStackInSlot(0).isEmpty())redstoneSwitch(false);
             }
 
             @Override
@@ -92,6 +96,16 @@ public class PortalCoreTE extends TileEntity {
         return super.getCapability(cap, side);
     }
 
+    public ResourceLocation getLooksLike() {
+        return looksLike;
+    }
+
+    public void setLooksLike(ResourceLocation looksLike) {
+        this.looksLike = looksLike;
+        getLevel().sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), 3);
+        setChanged();
+    }
+
     @Override
     public CompoundNBT getUpdateTag() {
         return save(new CompoundNBT());
@@ -117,6 +131,7 @@ public class PortalCoreTE extends TileEntity {
         nbt.putBoolean("isPowered", isPowered);
         nbt.put("linkedPortalPosition", NBTUtil.writeBlockPos(linkedPortalPosition));
         nbt.putString("linkedPortalStyle", linkedPortalDimension.toString());
+        nbt.putString("looksLike", looksLike.toString());
         return super.save(nbt);
     }
 
@@ -128,143 +143,153 @@ public class PortalCoreTE extends TileEntity {
         if(nbt.contains("isPowered")) isPowered = nbt.getBoolean("isPowered");
         if(nbt.contains("linkedPortalPosition")) linkedPortalPosition = NBTUtil.readBlockPos(nbt.getCompound("linkedPortalPosition"));
         if(nbt.contains("linkedPortalStyle")) linkedPortalDimension = new ResourceLocation(nbt.getString("linkedPortalStyle"));
+        String looksLikeStr = nbt.getString("looksLike");
+        if(looksLikeStr == "") looksLikeStr = "universaliscuniculum:portal_block_deact";
+        looksLike = new ResourceLocation(looksLikeStr);
         super.load(blockState, nbt);
     }
 
     public boolean structureComplete()
     {
         World world = this.getLevel();
-        BlockPos corePos = this.getBlockPos();
-        if(world.getBlockState(corePos.east(1)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.east(2)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.above(1).east(2)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.above(2).east(2)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.above(3).east(2)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.above(4).east(1)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.west(1)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.west(2)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.above(1).west(2)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.above(2).west(2)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.above(3).west(2)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.above(4).west(1)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.north(1)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.north(2)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.above(1).north(2)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.above(2).north(2)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.above(3).north(2)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.above(4).north(1)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.south(1)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.south(2)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.above(1).south(2)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.above(2).south(2)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.above(3).south(2)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.above(4).south(1)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
-        if(world.getBlockState(corePos.above(4)).getBlock() != Content.PORTAL_FRAME_BLOCK.get()) return false;
+        BlockPos corePos = PortalCore.getPortalCenter(this.getBlockPos(), world);
+        if(corePos == null) return false;
+        if(!(world.getBlockState(corePos.east(1)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.east(2)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.above(1).east(2)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.above(2).east(2)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.above(3).east(2)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.above(4).east(1)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.west(1)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.west(2)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.above(1).west(2)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.above(2).west(2)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.above(3).west(2)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.above(4).west(1)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.north(1)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.north(2)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.above(1).north(2)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.above(2).north(2)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.above(3).north(2)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.above(4).north(1)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.south(1)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.south(2)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.above(1).south(2)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.above(2).south(2)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.above(3).south(2)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.above(4).south(1)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(!(world.getBlockState(corePos.above(4)).getBlock() instanceof IPortalStructurePart)) return false;
+        if(PortalFrame.getPortalCoreStatic(corePos, world) == null)return false;
         return true;
     }
 
     private void setNewLook(World world, BlockPos pos, ResourceLocation dimension)
     {
-        PortalFrameTE te = (PortalFrameTE)world.getBlockEntity(pos);
+        TileEntity te = world.getBlockEntity(pos);
         if(te != null)
         {
-            te.setLooksLike(Config.getDecorator(dimension));
+            if(te instanceof PortalFrameTE)
+                ((PortalFrameTE)te).setLooksLike(Config.getDecorator(dimension));
+            else if(te instanceof PortalCoreTE)
+                ((PortalCoreTE)te).setLooksLike(Config.getDecorator(dimension));
         }
     }
 
     public void rebuildPortalStructure(ResourceLocation dimension)
     {
         World world = this.getLevel();
-        BlockPos corePos = this.getBlockPos();
-        if(world.getBlockState(corePos.east(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.east(1), dimension);
-        if(world.getBlockState(corePos.east(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.east(2), dimension);
-        if(world.getBlockState(corePos.above(1).east(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.above(1).east(2), dimension);
-        if(world.getBlockState(corePos.above(2).east(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.above(2).east(2), dimension);
-        if(world.getBlockState(corePos.above(3).east(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.above(3).east(2), dimension);
-        if(world.getBlockState(corePos.above(4).east(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.above(4).east(1), dimension);
-        if(world.getBlockState(corePos.west(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.west(1), dimension);
-        if(world.getBlockState(corePos.west(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.west(2), dimension);
-        if(world.getBlockState(corePos.above(1).west(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.above(1).west(2), dimension);
-        if(world.getBlockState(corePos.above(2).west(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.above(2).west(2), dimension);
-        if(world.getBlockState(corePos.above(3).west(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.above(3).west(2), dimension);
-        if(world.getBlockState(corePos.above(4).west(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.above(4).west(1), dimension);
-        if(world.getBlockState(corePos.north(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.north(1), dimension);
-        if(world.getBlockState(corePos.north(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.north(2), dimension);
-        if(world.getBlockState(corePos.above(1).north(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.above(1).north(2), dimension);
-        if(world.getBlockState(corePos.above(2).north(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.above(2).north(2), dimension);
-        if(world.getBlockState(corePos.above(3).north(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.above(3).north(2), dimension);
-        if(world.getBlockState(corePos.above(4).north(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.above(4).north(1), dimension);
-        if(world.getBlockState(corePos.south(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.south(1), dimension);
-        if(world.getBlockState(corePos.south(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.south(2), dimension);
-        if(world.getBlockState(corePos.above(1).south(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.above(1).south(2), dimension);
-        if(world.getBlockState(corePos.above(2).south(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.above(2).south(2), dimension);
-        if(world.getBlockState(corePos.above(3).south(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.above(3).south(2), dimension);
-        if(world.getBlockState(corePos.above(4).south(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.above(4).south(1), dimension);
-        if(world.getBlockState(corePos.above(4)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())setNewLook(world, corePos.above(4), dimension);
+        BlockPos corePos = PortalCore.getPortalCenter(getBlockPos(), world);
+        if(corePos == null) return;
+        if(world.getBlockState(corePos.east(1)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.east(1), dimension);
+        if(world.getBlockState(corePos.east(2)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.east(2), dimension);
+        if(world.getBlockState(corePos.above(1).east(2)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.above(1).east(2), dimension);
+        if(world.getBlockState(corePos.above(2).east(2)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.above(2).east(2), dimension);
+        if(world.getBlockState(corePos.above(3).east(2)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.above(3).east(2), dimension);
+        if(world.getBlockState(corePos.above(4).east(1)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.above(4).east(1), dimension);
+        if(world.getBlockState(corePos.west(1)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.west(1), dimension);
+        if(world.getBlockState(corePos.west(2)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.west(2), dimension);
+        if(world.getBlockState(corePos.above(1).west(2)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.above(1).west(2), dimension);
+        if(world.getBlockState(corePos.above(2).west(2)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.above(2).west(2), dimension);
+        if(world.getBlockState(corePos.above(3).west(2)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.above(3).west(2), dimension);
+        if(world.getBlockState(corePos.above(4).west(1)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.above(4).west(1), dimension);
+        if(world.getBlockState(corePos.north(1)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.north(1), dimension);
+        if(world.getBlockState(corePos.north(2)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.north(2), dimension);
+        if(world.getBlockState(corePos.above(1).north(2)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.above(1).north(2), dimension);
+        if(world.getBlockState(corePos.above(2).north(2)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.above(2).north(2), dimension);
+        if(world.getBlockState(corePos.above(3).north(2)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.above(3).north(2), dimension);
+        if(world.getBlockState(corePos.above(4).north(1)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.above(4).north(1), dimension);
+        if(world.getBlockState(corePos.south(1)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.south(1), dimension);
+        if(world.getBlockState(corePos.south(2)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.south(2), dimension);
+        if(world.getBlockState(corePos.above(1).south(2)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.above(1).south(2), dimension);
+        if(world.getBlockState(corePos.above(2).south(2)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.above(2).south(2), dimension);
+        if(world.getBlockState(corePos.above(3).south(2)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.above(3).south(2), dimension);
+        if(world.getBlockState(corePos.above(4).south(1)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.above(4).south(1), dimension);
+        if(world.getBlockState(corePos.above(4)).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos.above(4), dimension);
+        if(world.getBlockState(corePos).getBlock() instanceof IPortalStructurePart)setNewLook(world, corePos, dimension);
     }
 
     public void demolishPortalStructure()
     {
         World world = this.getLevel();
-        BlockPos corePos = this.getBlockPos();
-        if(world.getBlockState(corePos.east(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.east(1), false);
-        if(world.getBlockState(corePos.east(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.east(2), false);
-        if(world.getBlockState(corePos.above(1).east(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.above(1).east(2), false);
-        if(world.getBlockState(corePos.above(2).east(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.above(2).east(2), false);
-        if(world.getBlockState(corePos.above(3).east(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.above(3).east(2), false);
-        if(world.getBlockState(corePos.above(4).east(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.above(4).east(1), false);
-        if(world.getBlockState(corePos.west(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.west(1), false);
-        if(world.getBlockState(corePos.west(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.west(2), false);
-        if(world.getBlockState(corePos.above(1).west(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.above(1).west(2), false);
-        if(world.getBlockState(corePos.above(2).west(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.above(2).west(2), false);
-        if(world.getBlockState(corePos.above(3).west(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.above(3).west(2), false);
-        if(world.getBlockState(corePos.above(4).west(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.above(4).west(1), false);
-        if(world.getBlockState(corePos.north(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.north(1), false);
-        if(world.getBlockState(corePos.north(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.north(2), false);
-        if(world.getBlockState(corePos.above(1).north(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.above(1).north(2), false);
-        if(world.getBlockState(corePos.above(2).north(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.above(2).north(2), false);
-        if(world.getBlockState(corePos.above(3).north(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.above(3).north(2), false);
-        if(world.getBlockState(corePos.above(4).north(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.above(4).north(1), false);
-        if(world.getBlockState(corePos.south(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.south(1), false);
-        if(world.getBlockState(corePos.south(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.south(2), false);
-        if(world.getBlockState(corePos.above(1).south(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.above(1).south(2), false);
-        if(world.getBlockState(corePos.above(2).south(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.above(2).south(2), false);
-        if(world.getBlockState(corePos.above(3).south(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.above(3).south(2), false);
-        if(world.getBlockState(corePos.above(4).south(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.above(4).south(1), false);
-        if(world.getBlockState(corePos.above(4)).getBlock() == Content.PORTAL_FRAME_BLOCK.get())world.removeBlock(corePos.above(4), false);
-        if(world.getBlockState(corePos).getBlock() == Content.PORTAL_CORE_BLOCK.get())world.removeBlock(corePos, false);
+        BlockPos corePos = PortalCore.getPortalCenter(getBlockPos(), world);
+        if(world.getBlockState(corePos.east(1)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.east(1), false);
+        if(world.getBlockState(corePos.east(2)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.east(2), false);
+        if(world.getBlockState(corePos.above(1).east(2)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.above(1).east(2), false);
+        if(world.getBlockState(corePos.above(2).east(2)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.above(2).east(2), false);
+        if(world.getBlockState(corePos.above(3).east(2)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.above(3).east(2), false);
+        if(world.getBlockState(corePos.above(4).east(1)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.above(4).east(1), false);
+        if(world.getBlockState(corePos.west(1)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.west(1), false);
+        if(world.getBlockState(corePos.west(2)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.west(2), false);
+        if(world.getBlockState(corePos.above(1).west(2)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.above(1).west(2), false);
+        if(world.getBlockState(corePos.above(2).west(2)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.above(2).west(2), false);
+        if(world.getBlockState(corePos.above(3).west(2)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.above(3).west(2), false);
+        if(world.getBlockState(corePos.above(4).west(1)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.above(4).west(1), false);
+        if(world.getBlockState(corePos.north(1)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.north(1), false);
+        if(world.getBlockState(corePos.north(2)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.north(2), false);
+        if(world.getBlockState(corePos.above(1).north(2)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.above(1).north(2), false);
+        if(world.getBlockState(corePos.above(2).north(2)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.above(2).north(2), false);
+        if(world.getBlockState(corePos.above(3).north(2)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.above(3).north(2), false);
+        if(world.getBlockState(corePos.above(4).north(1)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.above(4).north(1), false);
+        if(world.getBlockState(corePos.south(1)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.south(1), false);
+        if(world.getBlockState(corePos.south(2)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.south(2), false);
+        if(world.getBlockState(corePos.above(1).south(2)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.above(1).south(2), false);
+        if(world.getBlockState(corePos.above(2).south(2)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.above(2).south(2), false);
+        if(world.getBlockState(corePos.above(3).south(2)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.above(3).south(2), false);
+        if(world.getBlockState(corePos.above(4).south(1)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.above(4).south(1), false);
+        if(world.getBlockState(corePos.above(4)).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos.above(4), false);
+        if(world.getBlockState(corePos).getBlock() instanceof IPortalStructurePart)world.removeBlock(corePos, false);
     }
 
     public static BlockPos checkExistingPortal(World world, BlockPos initialPos)
     {
         BlockPos corePos = initialPos;
         BlockPos retCoords = null;
-        if(world.getBlockState(corePos.east(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.east(1)).getBlock()).getPortalCore(corePos.east(1), world):retCoords;
-        if(world.getBlockState(corePos.east(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.east(2)).getBlock()).getPortalCore(corePos.east(2), world):retCoords;
-        if(world.getBlockState(corePos.above(1).east(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.above(1).east(2)).getBlock()).getPortalCore(corePos.above(1).east(2), world):retCoords;
-        if(world.getBlockState(corePos.above(2).east(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.above(2).east(2)).getBlock()).getPortalCore(corePos.above(2).east(2), world):retCoords;
-        if(world.getBlockState(corePos.above(3).east(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.above(3).east(2)).getBlock()).getPortalCore(corePos.above(3).east(2), world):retCoords;
-        if(world.getBlockState(corePos.above(4).east(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.above(4).east(1)).getBlock()).getPortalCore(corePos.above(4).east(1), world):retCoords;
-        if(world.getBlockState(corePos.west(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.west(1)).getBlock()).getPortalCore(corePos.west(1), world):retCoords;
-        if(world.getBlockState(corePos.west(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.west(2)).getBlock()).getPortalCore(corePos.west(2), world):retCoords;
-        if(world.getBlockState(corePos.above(1).west(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.above(1).west(2)).getBlock()).getPortalCore(corePos.above(1).west(2), world):retCoords;
-        if(world.getBlockState(corePos.above(2).west(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.above(2).west(2)).getBlock()).getPortalCore(corePos.above(2).west(2), world):retCoords;
-        if(world.getBlockState(corePos.above(3).west(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.above(3).west(2)).getBlock()).getPortalCore(corePos.above(3).west(2), world):retCoords;
-        if(world.getBlockState(corePos.above(4).west(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.above(4).west(1)).getBlock()).getPortalCore(corePos.above(4).west(1), world):retCoords;
-        if(world.getBlockState(corePos.north(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.north(1)).getBlock()).getPortalCore(corePos.north(1), world):retCoords;
-        if(world.getBlockState(corePos.north(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.north(2)).getBlock()).getPortalCore(corePos.north(2), world):retCoords;
-        if(world.getBlockState(corePos.above(1).north(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.above(1).north(2)).getBlock()).getPortalCore(corePos.above(1).north(2), world):retCoords;
-        if(world.getBlockState(corePos.above(2).north(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.above(2).north(2)).getBlock()).getPortalCore(corePos.above(2).north(2), world):retCoords;
-        if(world.getBlockState(corePos.above(3).north(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.above(3).north(2)).getBlock()).getPortalCore(corePos.above(3).north(2), world):retCoords;
-        if(world.getBlockState(corePos.above(4).north(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.above(4).north(1)).getBlock()).getPortalCore(corePos.above(4).north(1), world):retCoords;
-        if(world.getBlockState(corePos.south(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.south(1)).getBlock()).getPortalCore(corePos.south(1), world):retCoords;
-        if(world.getBlockState(corePos.south(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.south(2)).getBlock()).getPortalCore(corePos.south(1), world):retCoords;
-        if(world.getBlockState(corePos.above(1).south(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.above(1).south(2)).getBlock()).getPortalCore(corePos.above(1).south(2), world):retCoords;
-        if(world.getBlockState(corePos.above(2).south(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.above(2).south(2)).getBlock()).getPortalCore(corePos.above(2).south(2), world):retCoords;
-        if(world.getBlockState(corePos.above(3).south(2)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.above(3).south(2)).getBlock()).getPortalCore(corePos.above(3).south(2), world):retCoords;
-        if(world.getBlockState(corePos.above(4).south(1)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.above(4).south(1)).getBlock()).getPortalCore(corePos.above(4).south(1), world):retCoords;
-        if(world.getBlockState(corePos.above(4)).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos.above(4)).getBlock()).getPortalCore(corePos.above(4), world):retCoords;
-        if(world.getBlockState(corePos).getBlock() == Content.PORTAL_FRAME_BLOCK.get()) retCoords = (retCoords==null)? ((PortalFrame)world.getBlockState(corePos).getBlock()).getPortalCore(corePos, world):retCoords;
+        if(world.getBlockState(corePos.east(1)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.east(1)).getBlock()).getPortalCore(corePos.east(1), world):retCoords;
+        if(world.getBlockState(corePos.east(2)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.east(2)).getBlock()).getPortalCore(corePos.east(2), world):retCoords;
+        if(world.getBlockState(corePos.above(1).east(2)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.above(1).east(2)).getBlock()).getPortalCore(corePos.above(1).east(2), world):retCoords;
+        if(world.getBlockState(corePos.above(2).east(2)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.above(2).east(2)).getBlock()).getPortalCore(corePos.above(2).east(2), world):retCoords;
+        if(world.getBlockState(corePos.above(3).east(2)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.above(3).east(2)).getBlock()).getPortalCore(corePos.above(3).east(2), world):retCoords;
+        if(world.getBlockState(corePos.above(4).east(1)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.above(4).east(1)).getBlock()).getPortalCore(corePos.above(4).east(1), world):retCoords;
+        if(world.getBlockState(corePos.west(1)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.west(1)).getBlock()).getPortalCore(corePos.west(1), world):retCoords;
+        if(world.getBlockState(corePos.west(2)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.west(2)).getBlock()).getPortalCore(corePos.west(2), world):retCoords;
+        if(world.getBlockState(corePos.above(1).west(2)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.above(1).west(2)).getBlock()).getPortalCore(corePos.above(1).west(2), world):retCoords;
+        if(world.getBlockState(corePos.above(2).west(2)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.above(2).west(2)).getBlock()).getPortalCore(corePos.above(2).west(2), world):retCoords;
+        if(world.getBlockState(corePos.above(3).west(2)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.above(3).west(2)).getBlock()).getPortalCore(corePos.above(3).west(2), world):retCoords;
+        if(world.getBlockState(corePos.above(4).west(1)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.above(4).west(1)).getBlock()).getPortalCore(corePos.above(4).west(1), world):retCoords;
+        if(world.getBlockState(corePos.north(1)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.north(1)).getBlock()).getPortalCore(corePos.north(1), world):retCoords;
+        if(world.getBlockState(corePos.north(2)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.north(2)).getBlock()).getPortalCore(corePos.north(2), world):retCoords;
+        if(world.getBlockState(corePos.above(1).north(2)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.above(1).north(2)).getBlock()).getPortalCore(corePos.above(1).north(2), world):retCoords;
+        if(world.getBlockState(corePos.above(2).north(2)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.above(2).north(2)).getBlock()).getPortalCore(corePos.above(2).north(2), world):retCoords;
+        if(world.getBlockState(corePos.above(3).north(2)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.above(3).north(2)).getBlock()).getPortalCore(corePos.above(3).north(2), world):retCoords;
+        if(world.getBlockState(corePos.above(4).north(1)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.above(4).north(1)).getBlock()).getPortalCore(corePos.above(4).north(1), world):retCoords;
+        if(world.getBlockState(corePos.south(1)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.south(1)).getBlock()).getPortalCore(corePos.south(1), world):retCoords;
+        if(world.getBlockState(corePos.south(2)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.south(2)).getBlock()).getPortalCore(corePos.south(1), world):retCoords;
+        if(world.getBlockState(corePos.above(1).south(2)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.above(1).south(2)).getBlock()).getPortalCore(corePos.above(1).south(2), world):retCoords;
+        if(world.getBlockState(corePos.above(2).south(2)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.above(2).south(2)).getBlock()).getPortalCore(corePos.above(2).south(2), world):retCoords;
+        if(world.getBlockState(corePos.above(3).south(2)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.above(3).south(2)).getBlock()).getPortalCore(corePos.above(3).south(2), world):retCoords;
+        if(world.getBlockState(corePos.above(4).south(1)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.above(4).south(1)).getBlock()).getPortalCore(corePos.above(4).south(1), world):retCoords;
+        if(world.getBlockState(corePos.above(4)).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos.above(4)).getBlock()).getPortalCore(corePos.above(4), world):retCoords;
+        if(world.getBlockState(corePos).getBlock() instanceof IPortalStructurePart) retCoords = (retCoords==null)? ((IPortalStructurePart)world.getBlockState(corePos).getBlock()).getPortalCore(corePos, world):retCoords;
 
         return retCoords;
     }
@@ -272,7 +297,7 @@ public class PortalCoreTE extends TileEntity {
     public void activatePortal(ResourceLocation style)
     {
         World world = this.getLevel();
-        BlockPos corePos = this.getBlockPos();
+        BlockPos corePos = PortalCore.getPortalCenter(getBlockPos(), getLevel());
         if(!structureComplete())return;
         rebuildPortalStructure(style);
         if(world.getBlockState(corePos.above(1)).getBlock() != Content.PORTAL_BLOCK.get())world.setBlockAndUpdate(corePos.above(1), Content.PORTAL_BLOCK.get().defaultBlockState());
@@ -292,13 +317,14 @@ public class PortalCoreTE extends TileEntity {
         if(world.getBlockState(corePos.above(3).south(1)).getBlock() != Content.PORTAL_BLOCK.get())world.setBlockAndUpdate(corePos.above(3).south(1), Content.PORTAL_BLOCK.get().defaultBlockState());
         isPortalActive = true;
         setChanged();
+        world.sendBlockUpdated(corePos, world.getBlockState(corePos), world.getBlockState(corePos), 2);
     }
 
     public void deactivatePortal(boolean demolishPortalFrame)
     {
         World world = this.getLevel();
-        BlockPos corePos = this.getBlockPos();
-
+        BlockPos corePos = PortalCore.getPortalCenter(getBlockPos(), getLevel());
+        if (corePos == null) return;
         rebuildPortalStructure(new ResourceLocation("minecraft:nowhere"));
 
         if(world.getBlockState(corePos.above(1)).getBlock() == Content.PORTAL_BLOCK.get())world.removeBlock(corePos.above(1), false);
@@ -320,6 +346,7 @@ public class PortalCoreTE extends TileEntity {
         if(demolishPortalFrame)demolishPortalStructure();
         linkedPortalPosition = new BlockPos(0, 0, 0);
         setChanged();
+        world.sendBlockUpdated(corePos, world.getBlockState(corePos), world.getBlockState(corePos), 2);
     }
 
     public ResourceLocation getCoreStyle()
@@ -439,6 +466,7 @@ public class PortalCoreTE extends TileEntity {
 
     public void redstoneSwitch(boolean isActive)
     {
+        if(getLevel().isClientSide())return;
         if(!structureComplete())return;
         if(isActive)
         {
@@ -446,7 +474,7 @@ public class PortalCoreTE extends TileEntity {
             isPowered = true;
             if(isPortalActive) return;
             ResourceLocation style = getCoreStyle();
-            if(style.toString() == "minecraft:nowhere")
+            if(style.toString().equals("minecraft:nowhere"))
             {
                 UniversalisCuniculum.LOGGER.warn("Cannot find suitable dimension! Check your configs!");
                 return;
@@ -476,6 +504,7 @@ public class PortalCoreTE extends TileEntity {
                 }
                 deactivatePortal(false);
             }
+
         }
     }
 }

@@ -2,6 +2,7 @@ package com.cwelth.universaliscuniculum.inits;
 
 import com.cwelth.universaliscuniculum.UniversalisCuniculum;
 import com.cwelth.universaliscuniculum.gui.client.PortalCoreScreen;
+import com.cwelth.universaliscuniculum.tileentities.renderers.PortalCoreRenderer;
 import com.cwelth.universaliscuniculum.tileentities.renderers.PortalFrameRenderer;
 import net.minecraft.client.gui.ScreenManager;
 import net.minecraft.client.renderer.texture.AtlasTexture;
@@ -19,6 +20,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 public class InitClient {
     public static void init(final FMLClientSetupEvent event) {
         PortalFrameRenderer.register();
+        PortalCoreRenderer.register();
         ScreenManager.register(Content.PORTAL_CORE_CONTAINER.get(), PortalCoreScreen::new);
     }
 

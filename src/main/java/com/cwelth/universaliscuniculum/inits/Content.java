@@ -46,6 +46,8 @@ public class Content {
     public static final RegistryObject<PortalFrame> PORTAL_FRAME_BLOCK = BLOCKS.register("portal_block", () -> new PortalFrame());
     public static final RegistryObject<Item> PORTAL_FRAME_ITEM = ITEMS.register("portal_block", () -> new BlockItem(PORTAL_FRAME_BLOCK.get(), new Item.Properties().tab(InitCommon.creativeTab)));
     public static final RegistryObject<Block> PORTAL_FRAME_DEACT_BLOCK = BLOCKS.register("portal_block_deact", () -> new Block(AbstractBlock.Properties.of(Material.METAL)));
+    public static final RegistryObject<Block> PORTAL_CORE_DEACT = BLOCKS.register("portal_core_deact", () -> new Block(AbstractBlock.Properties.of(Material.METAL)));
+    public static final RegistryObject<Block> PORTAL_CORE_OVERLAY = BLOCKS.register("portal_core_overlay", () -> new Block(AbstractBlock.Properties.of(Material.METAL)));
     public static final RegistryObject<Portal> PORTAL_BLOCK = BLOCKS.register("portal", () -> new Portal());
 
     //TileEntities

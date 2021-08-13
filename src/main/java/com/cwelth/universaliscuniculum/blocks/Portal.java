@@ -48,39 +48,26 @@ public class Portal extends Block {
 
     public BlockPos findPortalCore(IWorld worldIn, BlockPos pos)
     {
-        ResourceLocation style = new ResourceLocation("universaliscuniculum:portal_block_deact");
         BlockPos curPos = pos;
-        Block biq = worldIn.getBlockState(curPos.below()).getBlock();
+        Block biq = worldIn.getBlockState(curPos).getBlock();
         while(biq == this) {
             curPos = curPos.below();
-            biq = worldIn.getBlockState(curPos.below()).getBlock();
-        }
-        if(worldIn.getBlockState(curPos.below()).getBlock() != Content.PORTAL_CORE_BLOCK.get()) {
-            biq = worldIn.getBlockState(curPos.east()).getBlock();
-            if(biq == Content.PORTAL_BLOCK.get())
-            {
-                curPos = curPos.east();
-            } else {
-                biq = worldIn.getBlockState(curPos.west()).getBlock();
-                if (biq == Content.PORTAL_BLOCK.get())
-                {
-                    curPos = curPos.west();
-                } else {
-                    biq = worldIn.getBlockState(curPos.south()).getBlock();
-                    if (biq == Content.PORTAL_BLOCK.get())
-                    {
-                        curPos = curPos.south();
-                    } else {
-                        biq = worldIn.getBlockState(curPos.north()).getBlock();
-                        if (biq == Content.PORTAL_BLOCK.get()) curPos = curPos.north();
-                    }
-                }
-            }
+            biq = worldIn.getBlockState(curPos).getBlock();
         }
 
-        PortalCoreTE te = (PortalCoreTE)worldIn.getBlockEntity(curPos.below());
+        if(biq != Content.PORTAL_CORE_BLOCK.get())
+        {
+            if(biq == Content.PORTAL_FRAME_BLOCK.get())
+                curPos = ((PortalFrame)biq).getPortalCore(curPos, worldIn);
+            else
+                return null;
+        }
+
+        if(curPos == null) return null;
+
+        PortalCoreTE te = (PortalCoreTE)worldIn.getBlockEntity(curPos);
         if(te != null)
-            return curPos.below();
+            return curPos;
         else
             return null;
     }
